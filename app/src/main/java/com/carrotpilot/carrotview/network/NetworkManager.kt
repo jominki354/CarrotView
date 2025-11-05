@@ -80,7 +80,7 @@ class NetworkManager(private val context: Context) {
     }
     
     /**
-     * CarrotPilot 자동 발견
+     * CarrotPilot 자동 발견 - 모든 IP 대역 지원
      */
     suspend fun discoverCarrotPilot(): String? = withContext(Dispatchers.IO) {
         try {
@@ -100,6 +100,7 @@ class NetworkManager(private val context: Context) {
                 return@withContext null
             }
             
+            Log.i(TAG, "Local IP: $localIp")
             val subnet = localIp.substringBeforeLast(".")
             val discoveredIp = findCarrotPilotInSubnet(subnet)
             
@@ -107,7 +108,7 @@ class NetworkManager(private val context: Context) {
                 Log.i(TAG, "CarrotPilot discovered at: $discoveredIp")
                 prefs.lastServerAddress = discoveredIp
             } else {
-                Log.w(TAG, "CarrotPilot not found in subnet")
+                Log.w(TAG, "CarrotPilot not found in subnet $subnet")
             }
             
             return@withContext discoveredIp
@@ -119,14 +120,33 @@ class NetworkManager(private val context: Context) {
     }
     
     /**
-     * 서브넷에서 CarrotPilot 찾기
+     * 서브넷에서 CarrotPilot 찾기 - 모든 IP 대역 지원 (192.168.x.x, 10.x.x.x, 172.16-31.x.x)
      */
     private suspend fun findCarrotPilotInSubnet(subnet: String): String? = withContext(Dispatchers.IO) {
         val jobs = mutableListOf<Deferred<String?>>()
         
-        // 병렬로 IP 스캔 (192.168.x.1 ~ 192.168.x.254)
+        // 우선순위 IP 목록 (일반적인 CarrotPilot IP)
+        val priorityIps = listOf(
+            "$subnet.1",      // 게이트웨이/핫스팟
+            "$subnet.100",    // 일반적인 고정 IP
+            "$subnet.254"     // 마지막 주소
+        )
+        
+        // 우선순위 IP 먼저 확인
+        for (ip in priorityIps) {
+            Log.d(TAG, "Checking priority IP: $ip")
+            if (isCarrotPilotServer(ip)) {
+                Log.i(TAG, "✅ Found CarrotPilot at priority IP: $ip")
+                return@withContext ip
+            }
+        }
+        
+        // 병렬로 전체 서브넷 스캔 (x.x.x.1 ~ x.x.x.254)
+        Log.i(TAG, "Scanning full subnet: $subnet.0/24")
         for (i in 1..254) {
             val ip = "$subnet.$i"
+            if (priorityIps.contains(ip)) continue  // 이미 확인한 IP는 스킵
+            
             val job = async {
                 if (isCarrotPilotServer(ip)) ip else null
             }
@@ -137,12 +157,14 @@ class NetworkManager(private val context: Context) {
         for (job in jobs) {
             val result = job.await()
             if (result != null) {
+                Log.i(TAG, "✅ Found CarrotPilot at: $result")
                 // 나머지 작업 취소
                 jobs.forEach { it.cancel() }
                 return@withContext result
             }
         }
         
+        Log.w(TAG, "❌ CarrotPilot not found in subnet $subnet")
         return@withContext null
     }
     
@@ -278,7 +300,7 @@ class NetworkManager(private val context: Context) {
                 // JSON 파싱
                 val drivingData = DataParser.parseJson(data)
                 
-                // 데이터 유효성 검증
+                // 데이터 유효성 검증 (완화된 검증)
                 if (isValidData(drivingData)) {
                     _drivingData.value = drivingData
                     
@@ -287,33 +309,40 @@ class NetworkManager(private val context: Context) {
                     bytesReceived += data.length
                     lastDataTime = System.currentTimeMillis()
                     
-                    Log.d(TAG, "Data received: vEgo=${drivingData.carState.vEgo}, " +
-                            "enabled=${drivingData.controlsState.enabled}")
+                    Log.d(TAG, "✅ Data received: vEgo=${String.format("%.1f", drivingData.carState.vEgo * 3.6f)} km/h, " +
+                            "enabled=${drivingData.controlsState.enabled}, " +
+                            "active=${drivingData.controlsState.active}, " +
+                            "alert=${drivingData.controlsState.alertText}")
                 } else {
-                    Log.w(TAG, "Invalid data received")
+                    Log.w(TAG, "⚠️ Invalid data received: vEgo=${drivingData.carState.vEgo}, timestamp=${drivingData.timestamp}")
                 }
                 
             } catch (e: Exception) {
-                Log.e(TAG, "Error parsing data: ${e.message}", e)
+                Log.e(TAG, "❌ Error parsing data: ${e.message}", e)
+                Log.e(TAG, "Raw data: ${data.take(200)}...")  // 처음 200자만 로그
             }
         }
     }
     
     /**
-     * 데이터 유효성 검증
+     * 데이터 유효성 검증 (완화된 검증)
      */
     private fun isValidData(data: DrivingData): Boolean {
-        // 타임스탬프 확인 (현재 시간 기준 ±30초)
+        // 타임스탬프 확인 (현재 시간 기준 ±5분으로 완화)
         val currentTime = System.currentTimeMillis()
-        if (Math.abs(data.timestamp - currentTime) > 30000) {
+        val timeDiff = Math.abs(data.timestamp - currentTime)
+        if (timeDiff > 300000) {  // 5분
+            Log.w(TAG, "⚠️ Timestamp out of range: ${timeDiff}ms difference")
+            // 타임스탬프가 이상해도 데이터는 받아들임 (경고만 출력)
+        }
+        
+        // 속도 데이터 확인 (더 넓은 범위)
+        if (data.carState.vEgo < -1 || data.carState.vEgo > 200) {  // m/s (720 km/h까지 허용)
+            Log.w(TAG, "⚠️ Speed out of range: ${data.carState.vEgo} m/s")
             return false
         }
         
-        // 속도 데이터 확인
-        if (data.carState.vEgo < 0 || data.carState.vEgo > 120) {
-            return false
-        }
-        
+        // 기본적인 데이터 구조만 확인
         return true
     }
     

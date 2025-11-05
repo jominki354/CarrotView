@@ -288,29 +288,52 @@ class MainActivity : AppCompatActivity() {
             val speedKmh = data.carState.vEgo * 3.6f
             val cruiseKmh = data.carState.vCruise * 3.6f
             
+            // 주행 상태 판단
+            val drivingStatus = when {
+                !data.controlsState.enabled && !data.controlsState.active -> "⚪ 대기 중"
+                !data.controlsState.enabled && data.controlsState.active -> "🟡 크루즈 ON (오픈파일럿 OFF)"
+                data.controlsState.enabled && !data.controlsState.active -> "🟠 오픈파일럿 준비 중"
+                data.controlsState.enabled && data.controlsState.active -> "🟢 주행 중 (오픈파일럿 활성)"
+                else -> "❓ 알 수 없음"
+            }
+            
             val statusText = buildString {
                 appendLine("CarrotView 대시보드")
                 appendLine("=" * 30)
+                appendLine()
+                appendLine("📊 주행 상태: $drivingStatus")
                 appendLine()
                 appendLine("🚗 차량 상태")
                 appendLine("  현재 속도: ${String.format("%.1f", speedKmh)} km/h")
                 appendLine("  크루즈 설정 속도: ${String.format("%.1f", cruiseKmh)} km/h")
                 appendLine("  기어: ${data.carState.gearShifter}")
                 appendLine("  조향각: ${String.format("%.1f", data.carState.steeringAngleDeg)}°")
+                appendLine("  문 열림: ${if (data.carState.doorOpen) "예" else "아니오"}")
+                appendLine("  안전벨트: ${if (data.carState.seatbeltLatched) "착용" else "미착용"}")
                 appendLine()
                 appendLine("🚙 크루즈 제어")
-                appendLine("  오픈파일럿: ${if (data.controlsState.enabled) "활성화" else "비활성화"}")
-                appendLine("  크루즈: ${if (data.controlsState.active) "ON" else "OFF"}")
+                appendLine("  오픈파일럿: ${if (data.controlsState.enabled) "✅ 활성화" else "❌ 비활성화"}")
+                appendLine("  크루즈: ${if (data.controlsState.active) "✅ ON" else "❌ OFF"}")
+                appendLine("  경고: ${data.controlsState.alertText}")
                 appendLine("  상태: ${data.controlsState.alertStatus}")
                 appendLine()
+                
+                // 경고 메시지가 있으면 강조 표시
+                if (data.controlsState.alertText.isNotEmpty() && data.controlsState.alertText != "None") {
+                    appendLine("⚠️ 알림: ${data.controlsState.alertText}")
+                    appendLine()
+                }
+                
                 appendLine("🎯 추적 객체: ${data.liveTracks.size}개")
                 data.liveTracks.take(3).forEach { track ->
-                    appendLine("  #${track.trackId}: ${String.format("%.1f", track.dRel)}m")
+                    appendLine("  #${track.trackId}: ${String.format("%.1f", track.dRel)}m, ${String.format("%.1f", track.vRel * 3.6f)} km/h")
                 }
                 appendLine()
                 appendLine("🔋 디바이스")
                 appendLine("  배터리: ${data.deviceState.batteryPercent}%")
                 appendLine("  열 상태: ${data.deviceState.thermalStatus}")
+                appendLine()
+                appendLine("🕐 마지막 업데이트: ${java.text.SimpleDateFormat("HH:mm:ss", java.util.Locale.getDefault()).format(java.util.Date(data.timestamp))}")
             }
             
             statusTextView.text = statusText
