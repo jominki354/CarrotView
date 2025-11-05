@@ -80,41 +80,64 @@ class NetworkManager(private val context: Context) {
     }
     
     /**
-     * CarrotPilot 자동 발견 - 모든 IP 대역 지원
+     * CarrotPilot 자동 발견 - 모든 IP 대역 지원 (확장 검색)
      */
     suspend fun discoverCarrotPilot(): String? = withContext(Dispatchers.IO) {
         try {
-            Log.i(TAG, "Discovering CarrotPilot...")
+            Log.i(TAG, "🔍 Discovering CarrotPilot...")
             
-            // 마지막 연결 주소가 있으면 먼저 시도
+            // 1. 마지막 연결 주소가 있으면 먼저 시도
             val lastAddress = prefs.lastServerAddress
             if (lastAddress.isNotEmpty() && isCarrotPilotServer(lastAddress)) {
-                Log.i(TAG, "CarrotPilot found at last address: $lastAddress")
+                Log.i(TAG, "✅ CarrotPilot found at last address: $lastAddress")
                 return@withContext lastAddress
             }
             
-            // 로컬 네트워크에서 CarrotPilot 검색
+            // 2. 로컬 서브넷 검색
             val localIp = getLocalIpAddress()
-            if (localIp == null) {
-                Log.w(TAG, "Could not determine local IP address")
-                return@withContext null
+            if (localIp != null) {
+                Log.i(TAG, "📍 Local IP: $localIp")
+                val subnet = localIp.substringBeforeLast(".")
+                val discoveredIp = findCarrotPilotInSubnet(subnet)
+                
+                if (discoveredIp != null) {
+                    Log.i(TAG, "✅ CarrotPilot discovered in local subnet: $discoveredIp")
+                    prefs.lastServerAddress = discoveredIp
+                    return@withContext discoveredIp
+                }
             }
             
-            Log.i(TAG, "Local IP: $localIp")
-            val subnet = localIp.substringBeforeLast(".")
-            val discoveredIp = findCarrotPilotInSubnet(subnet)
+            // 3. 일반적인 사설 IP 대역 검색 (로컬 서브넷에서 못 찾은 경우)
+            Log.i(TAG, "🔍 Searching common private IP ranges...")
+            val commonSubnets = listOf(
+                "192.168.43",   // Android 핫스팟 기본
+                "192.168.1",    // 가장 일반적인 홈 네트워크
+                "192.168.0",    // 두 번째로 일반적
+                "10.0.0",       // 일부 라우터
+                "10.0.1",       // 일부 라우터
+                "172.16.0",     // 기업 네트워크
+                "192.168.100"   // 일부 ISP
+            )
             
-            if (discoveredIp != null) {
-                Log.i(TAG, "CarrotPilot discovered at: $discoveredIp")
-                prefs.lastServerAddress = discoveredIp
-            } else {
-                Log.w(TAG, "CarrotPilot not found in subnet $subnet")
+            for (subnet in commonSubnets) {
+                if (localIp != null && subnet == localIp.substringBeforeLast(".")) {
+                    continue  // 이미 검색한 서브넷은 스킵
+                }
+                
+                Log.d(TAG, "🔍 Checking subnet: $subnet.0/24")
+                val discoveredIp = findCarrotPilotInSubnet(subnet)
+                if (discoveredIp != null) {
+                    Log.i(TAG, "✅ CarrotPilot discovered at: $discoveredIp")
+                    prefs.lastServerAddress = discoveredIp
+                    return@withContext discoveredIp
+                }
             }
             
-            return@withContext discoveredIp
+            Log.w(TAG, "❌ CarrotPilot not found in any subnet")
+            return@withContext null
             
         } catch (e: Exception) {
-            Log.e(TAG, "Discovery error: ${e.message}", e)
+            Log.e(TAG, "❌ Discovery error: ${e.message}", e)
             return@withContext null
         }
     }
