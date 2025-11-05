@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#000000">
+
+    <!-- 메인 차량 시각화 뷰 (중앙 대부분 차지) -->
+    <com.carrotpilot.carrotview.ui.components.TeslaStyleVisualizationView
+        android:id="@+id/visualizationView"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_above="@id/bottomPanel"
+        android:layout_marginBottom="8dp" />
+
+    <!-- 왼쪽 속도계 -->
+    <com.carrotpilot.carrotview.ui.components.SpeedometerView
+        android:id="@+id/speedometerView"
+        android:layout_width="200dp"
+        android:layout_height="200dp"
+        android:layout_alignParentStart="true"
+        android:layout_alignParentBottom="true"
+        android:layout_marginStart="20dp"
+        android:layout_marginBottom="20dp" />
+
+    <!-- 오른쪽 오토파일럿 상태 -->
+    <LinearLayout
+        android:id="@+id/autopilotPanel"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentEnd="true"
+        android:layout_alignParentBottom="true"
+        android:layout_marginEnd="20dp"
+        android:layout_marginBottom="20dp"
+        android:orientation="vertical"
+        android:padding="16dp"
+        android:background="#33FFFFFF">
+
+        <TextView
+            android:id="@+id/autopilotStatus"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="오토파일럿"
+            android:textColor="#FFFFFF"
+            android:textSize="20sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/autopilotState"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="비활성"
+            android:textColor="#AAAAAA"
+            android:textSize="16sp" />
+
+        <TextView
+            android:id="@+id/cruiseStatus"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:text="크루즈: OFF"
+            android:textColor="#AAAAAA"
+            android:textSize="14sp" />
+
+    </LinearLayout>
+
+    <!-- 하단 정보 패널 -->
+    <LinearLayout
+        android:id="@+id/bottomPanel"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:orientation="horizontal"
+        android:padding="12dp"
+        android:background="#1A1A1A"
+        android:gravity="center">
+
+        <TextView
+            android:id="@+id/gearText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="P"
+            android:textColor="#FFFFFF"
+            android:textSize="24sp"
+            android:textStyle="bold"
+            android:layout_marginEnd="24dp" />
+
+        <TextView
+            android:id="@+id/trackCountText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="추적: 0대"
+            android:textColor="#AAAAAA"
+            android:textSize="16sp"
+            android:layout_marginEnd="24dp" />
+
+        <TextView
+            android:id="@+id/alertText"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text=""
+            android:textColor="#FFA500"
+            android:textSize="16sp"
+            android:gravity="center" />
+
+    </LinearLayout>
+
+    <!-- 상단 연결 상태 -->
+    <TextView
+        android:id="@+id/connectionStatus"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentTop="true"
+        android:layout_centerHorizontal="true"
+        android:layout_marginTop="16dp"
+        android:text="연결 대기 중..."
+        android:textColor="#888888"
+        android:textSize="14sp"
+        android:padding="8dp"
+        android:background="#33000000" />
+
+</RelativeLayout>

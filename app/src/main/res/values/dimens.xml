@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 텍스트 크기 -->
+    <dimen name="text_huge">72sp</dimen>
+    <dimen name="text_xlarge">48sp</dimen>
+    <dimen name="text_large">32sp</dimen>
+    <dimen name="text_medium">24sp</dimen>
+    <dimen name="text_normal">18sp</dimen>
+    <dimen name="text_small">14sp</dimen>
+    <dimen name="text_tiny">12sp</dimen>
+    
+    <!-- 간격 -->
+    <dimen name="spacing_tiny">4dp</dimen>
+    <dimen name="spacing_small">8dp</dimen>
+    <dimen name="spacing_medium">16dp</dimen>
+    <dimen name="spacing_large">24dp</dimen>
+    <dimen name="spacing_xlarge">32dp</dimen>
+    
+    <!-- 컴포넌트 크기 -->
+    <dimen name="speedometer_size">280dp</dimen>
+    <dimen name="vehicle_width">80dp</dimen>
+    <dimen name="vehicle_height">120dp</dimen>
+    <dimen name="lane_width">6dp</dimen>
+    <dimen name="path_width">10dp</dimen>
+    
+    <!-- 모서리 반경 -->
+    <dimen name="corner_small">8dp</dimen>
+    <dimen name="corner_medium">12dp</dimen>
+    <dimen name="corner_large">16dp</dimen>
+</resources>

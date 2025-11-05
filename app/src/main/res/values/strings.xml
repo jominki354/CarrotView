@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">CarrotView Auto</string>
+    <string name="connection_disconnected">연결 끊김</string>
+    <string name="layout_locked">레이아웃 잠김</string>
+    <string name="speed_unit_kmh">km/h</string>
+    <string name="autopilot_disabled">오토파일럿 비활성</string>
+    <string name="cruise_inactive">크루즈 비활성</string>
+    <string name="gear_park">P</string>
+</resources>

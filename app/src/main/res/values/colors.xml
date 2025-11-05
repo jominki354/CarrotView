@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Tesla 스타일 다크 테마 색상 -->
+    <color name="background_primary">#000000</color>
+    <color name="background_secondary">#0A0A0A</color>
+    <color name="background_tertiary">#1A1A1A</color>
+    
+    <!-- 도로 및 차선 -->
+    <color name="road_surface">#1C1C1E</color>
+    <color name="lane_line">#FFFFFF</color>
+    <color name="lane_edge">#666666</color>
+    <color name="path_prediction">#00D563</color>
+    
+    <!-- 차량 색상 -->
+    <color name="vehicle_ego">#3B82F6</color>
+    <color name="vehicle_lead">#EF4444</color>
+    <color name="vehicle_other">#F59E0B</color>
+    <color name="vehicle_stationary">#6B7280</color>
+    
+    <!-- UI 요소 -->
+    <color name="text_primary">#FFFFFF</color>
+    <color name="text_secondary">#9CA3AF</color>
+    <color name="text_tertiary">#6B7280</color>
+    
+    <!-- 상태 색상 -->
+    <color name="status_active">#10B981</color>
+    <color name="status_warning">#F59E0B</color>
+    <color name="status_critical">#EF4444</color>
+    <color name="status_inactive">#4B5563</color>
+    
+    <!-- 오토파일럿 -->
+    <color name="autopilot_active">#10B981</color>
+    <color name="autopilot_standby">#3B82F6</color>
+    <color name="autopilot_inactive">#6B7280</color>
+    
+    <!-- 오버레이 -->
+    <color name="overlay_dark">#CC000000</color>
+    <color name="overlay_light">#33FFFFFF</color>
+    
+    <!-- 기존 호환성 -->
+    <color name="blue_info">#3B82F6</color>
+    <color name="gray_dark">#1A1A1A</color>
+    <color name="gray_medium">#6B7280</color>
+    <color name="surface_dark">#0A0A0A</color>
+    
+    <!-- Material 기본 색상 -->
+    <color name="purple_500">#6200EE</color>
+    <color name="purple_700">#3700B3</color>
+    <color name="teal_200">#03DAC5</color>
+    <color name="teal_700">#018786</color>
+    <color name="black">#000000</color>
+    <color name="white">#FFFFFF</color>
+</resources>

@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/background_primary">
+
+    <!-- 메인 차량 시각화 - 전체 화면 (3D 원근) -->
+    <com.carrotpilot.carrotview.ui.components.TeslaPerspectiveView
+        android:id="@+id/visualizationView"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
+
+    <!-- 왼쪽 상단 - 속도계 (크게) -->
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="start|top"
+        android:layout_margin="@dimen/spacing_large"
+        android:orientation="vertical"
+        android:gravity="center">
+
+        <!-- 현재 속도 -->
+        <TextView
+            android:id="@+id/currentSpeed"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="72"
+            android:textColor="@color/text_primary"
+            android:textSize="@dimen/text_huge"
+            android:fontFamily="sans-serif-light"
+            android:includeFontPadding="false" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="km/h"
+            android:textColor="@color/text_secondary"
+            android:textSize="@dimen/text_normal"
+            android:layout_marginTop="-8dp" />
+
+        <!-- 크루즈 속도 -->
+        <TextView
+            android:id="@+id/cruiseSpeed"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/spacing_small"
+            android:text="90"
+            android:textColor="@color/autopilot_standby"
+            android:textSize="@dimen/text_large"
+            android:fontFamily="sans-serif-medium" />
+
+    </LinearLayout>
+
+    <!-- 오른쪽 상단 - 오토파일럿 상태 -->
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="end|top"
+        android:layout_margin="@dimen/spacing_large"
+        android:orientation="vertical"
+        android:gravity="end"
+        android:padding="@dimen/spacing_medium"
+        android:background="@color/overlay_dark">
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
+
+            <View
+                android:id="@+id/autopilotIndicator"
+                android:layout_width="12dp"
+                android:layout_height="12dp"
+                android:layout_marginEnd="@dimen/spacing_small"
+                android:background="@drawable/circle_indicator" />
+
+            <TextView
+                android:id="@+id/autopilotStatus"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="크루즈"
+                android:textColor="@color/text_primary"
+                android:textSize="@dimen/text_medium"
+                android:fontFamily="sans-serif-medium" />
+
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/autopilotState"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/spacing_tiny"
+            android:text="활성"
+            android:textColor="@color/status_active"
+            android:textSize="@dimen/text_normal" />
+
+    </LinearLayout>
+
+    <!-- 중앙 - 경고 메시지 / 연결 상태 -->
+    <TextView
+        android:id="@+id/alertText"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:padding="@dimen/spacing_medium"
+        android:textColor="@color/status_warning"
+        android:textSize="@dimen/text_normal"
+        android:fontFamily="sans-serif-medium"
+        android:gravity="center"
+        android:visibility="gone" />
+
+    <!-- 하단바 제거 - 차량 시각화 전체 화면 사용 -->
+
+</FrameLayout>
