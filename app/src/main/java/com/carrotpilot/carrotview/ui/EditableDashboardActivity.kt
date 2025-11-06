@@ -68,6 +68,12 @@ class EditableDashboardActivity : AppCompatActivity() {
         startAutoConnection()
     }
     
+    override fun onResume() {
+        super.onResume()
+        // 레이아웃 관리에서 돌아왔을 때 레이아웃 다시 로드
+        restoreLayout()
+    }
+    
     private fun createUI() {
         // 루트 레이아웃
         rootLayout = FrameLayout(this).apply {
@@ -176,25 +182,18 @@ class EditableDashboardActivity : AppCompatActivity() {
         val speedPos = speedometer.savePosition()
         val autopilotPos = autopilotStatus.savePosition()
         
-        // SharedPreferences에 저장
-        prefs.saveComponentPosition("speedometer", speedPos.x, speedPos.y)
-        prefs.saveComponentPosition("autopilot", autopilotPos.x, autopilotPos.y)
+        // SharedPreferences에 전체 상태 저장
+        prefs.saveComponentState("speedometer", speedPos)
+        prefs.saveComponentState("autopilot", autopilotPos)
     }
     
     private fun restoreLayout() {
-        // SharedPreferences에서 복원
-        val speedPos = prefs.getComponentPosition("speedometer")
-        val autopilotPos = prefs.getComponentPosition("autopilot")
+        // SharedPreferences에서 전체 상태 복원
+        val speedState = prefs.getComponentState("speedometer")
+        val autopilotState = prefs.getComponentState("autopilot")
         
-        if (speedPos != null) {
-            speedometer.x = speedPos.first
-            speedometer.y = speedPos.second
-        }
-        
-        if (autopilotPos != null) {
-            autopilotStatus.x = autopilotPos.first
-            autopilotStatus.y = autopilotPos.second
-        }
+        speedState?.let { speedometer.restorePosition(it) }
+        autopilotState?.let { autopilotStatus.restorePosition(it) }
     }
     
     private fun setupListeners() {

@@ -362,6 +362,9 @@ class LayoutManagerActivity : AppCompatActivity() {
             )
             prefs.saveComponentState(componentId, position)
         }
+        
+        // 변경사항을 즉시 반영하기 위해 Activity 종료
+        finish()
     }
     
     private fun showDeleteConfirmDialog(name: String) {
