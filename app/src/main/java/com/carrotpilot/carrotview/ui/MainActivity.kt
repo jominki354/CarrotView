@@ -110,6 +110,22 @@ class MainActivity : AppCompatActivity() {
             setPadding(40, 40, 40, 40)
         }
         
+        // 버전 정보 표시 (상단 고정 - 항상 보임)
+        val buildTime = try {
+            val timestamp = com.carrotpilot.carrotview.BuildConfig.BUILD_TIME.toLong()
+            java.text.SimpleDateFormat("MM-dd HH:mm:ss", java.util.Locale.getDefault()).format(java.util.Date(timestamp))
+        } catch (e: Exception) {
+            "Unknown"
+        }
+        val versionTextView = TextView(this).apply {
+            text = "CarrotView v${com.carrotpilot.carrotview.BuildConfig.VERSION_NAME} | Build: $buildTime"
+            textSize = 11f
+            gravity = android.view.Gravity.CENTER
+            setPadding(0, 0, 0, 15)
+            setTextColor(0xFF00BCD4.toInt())  // 밝은 청록색 (Cyan)
+        }
+        layout.addView(versionTextView)
+        
         // 연결 상태 표시
         connectionStatusTextView = TextView(this).apply {
             text = "연결 상태: 연결 안 됨"
@@ -301,15 +317,6 @@ class MainActivity : AppCompatActivity() {
                 else -> "❓ 알 수 없음"
             }
             
-            // 버전 정보 생성
-            val buildTime = try {
-                val timestamp = com.carrotpilot.carrotview.BuildConfig.BUILD_TIME.toLong()
-                java.text.SimpleDateFormat("MM-dd HH:mm:ss", java.util.Locale.getDefault()).format(java.util.Date(timestamp))
-            } catch (e: Exception) {
-                "Unknown"
-            }
-            val versionInfo = "v${com.carrotpilot.carrotview.BuildConfig.VERSION_NAME} ($buildTime)"
-            
             val statusText = buildString {
                 appendLine("CarrotView 대시보드")
                 appendLine("=" * 30)
@@ -323,8 +330,6 @@ class MainActivity : AppCompatActivity() {
                 appendLine("  조향각: ${String.format("%.1f", data.carState.steeringAngleDeg)}°")
                 appendLine("  문 열림: ${if (data.carState.doorOpen) "예" else "아니오"}")
                 appendLine("  안전벨트: ${if (data.carState.seatbeltLatched) "착용" else "미착용"}")
-                appendLine()
-                appendLine("        [$versionInfo]")  // 버전 정보 (중앙 정렬)
                 appendLine()
                 appendLine("🚙 크루즈 제어")
                 appendLine("  오픈파일럿: ${if (data.controlsState.enabled) "✅ 활성화" else "❌ 비활성화"}")
