@@ -52,6 +52,14 @@
             android:label="설정">
         </activity>
         
+        <activity
+            android:name=".ui.EditableDashboardActivity"
+            android:exported="false"
+            android:screenOrientation="unspecified"
+            android:configChanges="orientation|screenSize|keyboardHidden"
+            android:theme="@style/Theme.CarrotView.NoActionBar">
+        </activity>
+        
     </application>
 
 </manifest>

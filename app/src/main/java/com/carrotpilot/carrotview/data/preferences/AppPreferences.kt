@@ -37,6 +37,10 @@ class AppPreferences(context: Context) {
         
         // 마지막 연결 정보
         private const val KEY_LAST_SERVER_ADDRESS = "last_server_address"
+        
+        // 레이아웃 설정
+        private const val KEY_COMPONENT_X = "component_x_"
+        private const val KEY_COMPONENT_Y = "component_y_"
     }
     
     // 서버 주소
@@ -114,5 +118,30 @@ class AppPreferences(context: Context) {
         autoReconnect = config.autoReconnect
         reconnectInterval = config.reconnectInterval
         lastServerAddress = config.serverAddress
+    }
+    
+    /**
+     * 컴포넌트 위치 저장
+     */
+    fun saveComponentPosition(componentId: String, x: Float, y: Float) {
+        prefs.edit().apply {
+            putFloat(KEY_COMPONENT_X + componentId, x)
+            putFloat(KEY_COMPONENT_Y + componentId, y)
+            apply()
+        }
+    }
+    
+    /**
+     * 컴포넌트 위치 복원
+     */
+    fun getComponentPosition(componentId: String): Pair<Float, Float>? {
+        val x = prefs.getFloat(KEY_COMPONENT_X + componentId, -1f)
+        val y = prefs.getFloat(KEY_COMPONENT_Y + componentId, -1f)
+        
+        return if (x >= 0 && y >= 0) {
+            Pair(x, y)
+        } else {
+            null
+        }
     }
 }

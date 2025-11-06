@@ -178,6 +178,16 @@ class MainActivity : AppCompatActivity() {
         }
         layout.addView(disconnectButton)
         
+        // 편집 가능한 대시보드 버튼
+        val editableDashboardButton = Button(this).apply {
+            text = "🎨 편집 가능한 대시보드"
+            setOnClickListener {
+                val intent = android.content.Intent(this@MainActivity, EditableDashboardActivity::class.java)
+                startActivity(intent)
+            }
+        }
+        layout.addView(editableDashboardButton)
+        
         // 설정 버튼
         val settingsButton = Button(this).apply {
             text = "⚙️ 설정"
