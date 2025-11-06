@@ -33,7 +33,8 @@ class TeslaDashboardActivity : AppCompatActivity() {
     
     // 드래그 가능한 컴포넌트들
     private lateinit var speedometer: DraggableSpeedometer
-    private lateinit var autopilotStatusView: DraggableAutopilotStatus
+    private lateinit var steeringWheel: DraggableSteeringWheel
+    private lateinit var autoHold: DraggableAutoHold
     
     // 편집 모드
     private var isEditMode = false
@@ -99,22 +100,34 @@ class TeslaDashboardActivity : AppCompatActivity() {
                 FrameLayout.LayoutParams.WRAP_CONTENT
             ).apply {
                 gravity = Gravity.START or Gravity.TOP
-                setMargins(32, 32, 0, 0)
+                setMargins(16, 16, 0, 0)
             }
         }
         rootLayout.addView(speedometer)
         
-        // 오토파일럿 상태 (오른쪽 상단) - 드래그 가능
-        autopilotStatusView = DraggableAutopilotStatus(this).apply {
+        // 조향각 핸들 (오른쪽 상단) - 드래그 가능
+        steeringWheel = DraggableSteeringWheel(this).apply {
             layoutParams = FrameLayout.LayoutParams(
                 FrameLayout.LayoutParams.WRAP_CONTENT,
                 FrameLayout.LayoutParams.WRAP_CONTENT
             ).apply {
                 gravity = Gravity.END or Gravity.TOP
-                setMargins(0, 32, 32, 0)
+                setMargins(0, 16, 16, 0)
             }
         }
-        rootLayout.addView(autopilotStatusView)
+        rootLayout.addView(steeringWheel)
+        
+        // 오토홀드 (왼쪽 중간) - 드래그 가능
+        autoHold = DraggableAutoHold(this).apply {
+            layoutParams = FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.WRAP_CONTENT,
+                FrameLayout.LayoutParams.WRAP_CONTENT
+            ).apply {
+                gravity = Gravity.START or Gravity.CENTER_VERTICAL
+                setMargins(16, 0, 0, 0)
+            }
+        }
+        rootLayout.addView(autoHold)
         
         // 버전 정보 (상단 중앙)
         versionInfo = TextView(this).apply {
@@ -154,31 +167,10 @@ class TeslaDashboardActivity : AppCompatActivity() {
         }
         rootLayout.addView(alertText)
         
-        // 편집 모드 토글 버튼 (상단 중앙 오른쪽)
-        editModeButton = Button(this).apply {
-            text = "🔓"
-            textSize = 12f
-            setBackgroundColor(0x88000000.toInt())
-            setTextColor(Color.WHITE)
-            layoutParams = FrameLayout.LayoutParams(
-                FrameLayout.LayoutParams.WRAP_CONTENT,
-                FrameLayout.LayoutParams.WRAP_CONTENT
-            ).apply {
-                gravity = Gravity.CENTER_HORIZONTAL or Gravity.TOP
-                setMargins(100, 16, 0, 0)
-            }
-            setOnClickListener {
-                toggleEditMode()
-            }
-        }
-        rootLayout.addView(editModeButton)
-        
-        // 설정 버튼 (상단 오른쪽 끝)
-        val settingsButton = Button(this).apply {
-            text = "⚙️"
-            textSize = 12f
-            setBackgroundColor(0x88000000.toInt())
-            setTextColor(Color.WHITE)
+        // 상단 버튼 컨테이너
+        val topButtonContainer = android.widget.LinearLayout(this).apply {
+            orientation = android.widget.LinearLayout.HORIZONTAL
+            gravity = Gravity.END
             layoutParams = FrameLayout.LayoutParams(
                 FrameLayout.LayoutParams.WRAP_CONTENT,
                 FrameLayout.LayoutParams.WRAP_CONTENT
@@ -186,11 +178,45 @@ class TeslaDashboardActivity : AppCompatActivity() {
                 gravity = Gravity.END or Gravity.TOP
                 setMargins(0, 16, 16, 0)
             }
+        }
+        
+        // 편집 모드 토글 버튼
+        editModeButton = Button(this).apply {
+            text = "편집"
+            textSize = 12f
+            setBackgroundColor(0xCC1976D2.toInt())  // 파란색
+            setTextColor(Color.WHITE)
+            setPadding(24, 12, 24, 12)
+            layoutParams = android.widget.LinearLayout.LayoutParams(
+                android.widget.LinearLayout.LayoutParams.WRAP_CONTENT,
+                android.widget.LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply {
+                setMargins(0, 0, 8, 0)
+            }
+            setOnClickListener {
+                toggleEditMode()
+            }
+        }
+        topButtonContainer.addView(editModeButton)
+        
+        // 설정 버튼
+        val settingsButton = Button(this).apply {
+            text = "설정"
+            textSize = 12f
+            setBackgroundColor(0xCC424242.toInt())  // 회색
+            setTextColor(Color.WHITE)
+            setPadding(24, 12, 24, 12)
+            layoutParams = android.widget.LinearLayout.LayoutParams(
+                android.widget.LinearLayout.LayoutParams.WRAP_CONTENT,
+                android.widget.LinearLayout.LayoutParams.WRAP_CONTENT
+            )
             setOnClickListener {
                 openLayoutManager()
             }
         }
-        rootLayout.addView(settingsButton)
+        topButtonContainer.addView(settingsButton)
+        
+        rootLayout.addView(topButtonContainer)
         
         // 표시/숨김 토글 버튼들 (편집 모드에서만 표시)
         createVisibilityToggleButtons()
@@ -201,10 +227,11 @@ class TeslaDashboardActivity : AppCompatActivity() {
     private fun createVisibilityToggleButtons() {
         // 속도계 표시/숨김 버튼
         val speedToggleButton = Button(this).apply {
-            text = "👁️ 속도계"
-            textSize = 10f
-            setBackgroundColor(0x88000000.toInt())
+            text = "속도계"
+            textSize = 11f
+            setBackgroundColor(0xCC1976D2.toInt())
             setTextColor(Color.WHITE)
+            setPadding(20, 10, 20, 10)
             layoutParams = FrameLayout.LayoutParams(
                 FrameLayout.LayoutParams.WRAP_CONTENT,
                 FrameLayout.LayoutParams.WRAP_CONTENT
@@ -216,17 +243,19 @@ class TeslaDashboardActivity : AppCompatActivity() {
             tag = "visibility_toggle"
             setOnClickListener {
                 speedometer.toggleVisibility()
-                text = if (speedometer.visibility == View.VISIBLE) "👁️ 속도계" else "👁️‍🗨️ 속도계"
+                text = if (speedometer.visibility == View.VISIBLE) "속도계" else "속도계 (숨김)"
+                setBackgroundColor(if (speedometer.visibility == View.VISIBLE) 0xCC1976D2.toInt() else 0xCC757575.toInt())
             }
         }
         rootLayout.addView(speedToggleButton)
         
-        // 오토파일럿 표시/숨김 버튼
-        val autopilotToggleButton = Button(this).apply {
-            text = "👁️ 오토파일럿"
-            textSize = 10f
-            setBackgroundColor(0x88000000.toInt())
+        // 조향각 표시/숨김 버튼
+        val wheelToggleButton = Button(this).apply {
+            text = "조향각"
+            textSize = 11f
+            setBackgroundColor(0xCC1976D2.toInt())
             setTextColor(Color.WHITE)
+            setPadding(20, 10, 20, 10)
             layoutParams = FrameLayout.LayoutParams(
                 FrameLayout.LayoutParams.WRAP_CONTENT,
                 FrameLayout.LayoutParams.WRAP_CONTENT
@@ -237,11 +266,12 @@ class TeslaDashboardActivity : AppCompatActivity() {
             visibility = View.GONE
             tag = "visibility_toggle"
             setOnClickListener {
-                autopilotStatusView.toggleVisibility()
-                text = if (autopilotStatusView.visibility == View.VISIBLE) "👁️ 오토파일럿" else "👁️‍🗨️ 오토파일럿"
+                steeringWheel.toggleVisibility()
+                text = if (steeringWheel.visibility == View.VISIBLE) "조향각" else "조향각 (숨김)"
+                setBackgroundColor(if (steeringWheel.visibility == View.VISIBLE) 0xCC1976D2.toInt() else 0xCC757575.toInt())
             }
         }
-        rootLayout.addView(autopilotToggleButton)
+        rootLayout.addView(wheelToggleButton)
     }
     
     private fun toggleEditMode() {
@@ -249,7 +279,8 @@ class TeslaDashboardActivity : AppCompatActivity() {
         
         // 모든 드래그 가능한 컴포넌트의 편집 모드 설정
         speedometer.isEditMode = isEditMode
-        autopilotStatusView.isEditMode = isEditMode
+        steeringWheel.isEditMode = isEditMode
+        autoHold.isEditMode = isEditMode
         
         // 표시/숨김 토글 버튼들 표시/숨김
         for (i in 0 until rootLayout.childCount) {
@@ -259,8 +290,9 @@ class TeslaDashboardActivity : AppCompatActivity() {
             }
         }
         
-        // 버튼 텍스트 변경
-        editModeButton.text = if (isEditMode) "🔒" else "🔓"
+        // 버튼 텍스트 및 색상 변경
+        editModeButton.text = if (isEditMode) "저장" else "편집"
+        editModeButton.setBackgroundColor(if (isEditMode) 0xCC4CAF50.toInt() else 0xCC1976D2.toInt())
         
         if (isEditMode) {
             Toast.makeText(this, "편집 모드: 드래그/핀치/토글 가능", Toast.LENGTH_SHORT).show()
@@ -278,20 +310,24 @@ class TeslaDashboardActivity : AppCompatActivity() {
     
     private fun saveLayout() {
         val speedPos = speedometer.savePosition()
-        val autopilotPos = autopilotStatusView.savePosition()
+        val wheelPos = steeringWheel.savePosition()
+        val holdPos = autoHold.savePosition()
         
         // SharedPreferences에 전체 상태 저장
         prefs.saveComponentState("speedometer", speedPos)
-        prefs.saveComponentState("autopilot", autopilotPos)
+        prefs.saveComponentState("steering_wheel", wheelPos)
+        prefs.saveComponentState("auto_hold", holdPos)
     }
     
     private fun restoreLayout() {
         // SharedPreferences에서 전체 상태 복원
         val speedState = prefs.getComponentState("speedometer")
-        val autopilotState = prefs.getComponentState("autopilot")
+        val wheelState = prefs.getComponentState("steering_wheel")
+        val holdState = prefs.getComponentState("auto_hold")
         
         speedState?.let { speedometer.restorePosition(it) }
-        autopilotState?.let { autopilotStatusView.restorePosition(it) }
+        wheelState?.let { steeringWheel.restorePosition(it) }
+        holdState?.let { autoHold.restorePosition(it) }
     }
     
     override fun onResume() {
@@ -371,8 +407,11 @@ class TeslaDashboardActivity : AppCompatActivity() {
         // 속도 표시 초기화
         speedometer.updateSpeed(0f, 0f)
         
-        // 오토파일럿 상태 초기화
-        autopilotStatusView.updateStatus(false, false)
+        // 조향각 초기화
+        steeringWheel.updateSteeringAngle(0f)
+        
+        // 오토홀드 초기화
+        autoHold.updateStatus(false)
         
         // 중앙에 "연결 안 됨" 표시
         alertText.visibility = View.VISIBLE
@@ -418,8 +457,12 @@ class TeslaDashboardActivity : AppCompatActivity() {
         val cruiseKmh = data.carState.vCruise * 3.6f
         speedometer.updateSpeed(speedKmh, cruiseKmh)
         
-        // 오토파일럿 상태 업데이트
-        autopilotStatusView.updateStatus(data.controlsState.enabled, data.controlsState.active)
+        // 조향각 업데이트 (이미 도 단위)
+        steeringWheel.updateSteeringAngle(data.carState.steeringAngleDeg)
+        
+        // 오토홀드 상태 업데이트 (예: 정지 중)
+        val isAutoHoldActive = data.carState.vEgo < 0.1f
+        autoHold.updateStatus(isAutoHoldActive)
         
         // 시각화 뷰 업데이트
         visualizationView.updateData(extendedData)

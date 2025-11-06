@@ -12,14 +12,17 @@ import com.carrotpilot.carrotview.ui.layout.PresetLayoutConfig
 import com.carrotpilot.carrotview.ui.layout.PresetComponentConfig
 
 /**
- * 레이아웃 관리 Activity
+ * 레이아웃 관리 Activity (간소화 버전)
  */
 class LayoutManagerActivity : AppCompatActivity() {
     
     private lateinit var layoutManager: LayoutPresetManager
     private lateinit var prefs: AppPreferences
     private lateinit var rootLayout: LinearLayout
-    private lateinit var savedLayoutsContainer: LinearLayout
+    
+    companion object {
+        private const val LAYOUT_SLOT_COUNT = 5
+    }
     
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -32,45 +35,64 @@ class LayoutManagerActivity : AppCompatActivity() {
     private fun createUI() {
         rootLayout = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(32, 32, 32, 32)
-            setBackgroundColor(Color.BLACK)
+            setPadding(24, 24, 24, 24)
+            setBackgroundColor(0xFF121212.toInt())
         }
         
         // 제목
         val titleText = TextView(this).apply {
-            text = "🎨 레이아웃 관리"
-            textSize = 24f
+            text = "레이아웃 관리"
+            textSize = 22f
             setTextColor(Color.WHITE)
             gravity = Gravity.CENTER
-            setPadding(0, 0, 0, 32)
+            setPadding(0, 0, 0, 16)
         }
         rootLayout.addView(titleText)
         
-        // 프리셋 레이아웃 섹션
-        createPresetSection()
+        // 설명
+        val descText = TextView(this).apply {
+            text = "레이아웃을 슬롯에 저장하고 불러올 수 있습니다"
+            textSize = 13f
+            setTextColor(0xFFAAAAAA.toInt())
+            gravity = Gravity.CENTER
+            setPadding(0, 0, 0, 8)
+        }
+        rootLayout.addView(descText)
         
-        // 구분선
-        addDivider()
-        
-        // 현재 레이아웃 저장 섹션
-        createSaveSection()
-        
-        // 구분선
-        addDivider()
-        
-        // 저장된 레이아웃 섹션
-        createSavedLayoutsSection()
-        
-        // 뒤로 가기 버튼
-        val backButton = Button(this).apply {
-            text = "← 뒤로 가기"
-            setBackgroundColor(0xFF666666.toInt())
+        // 기본값 초기화 버튼
+        val resetButton = Button(this).apply {
+            text = "기본 레이아웃으로 초기화"
+            textSize = 13f
+            setBackgroundColor(0xFFFF5722.toInt())
             setTextColor(Color.WHITE)
+            setPadding(16, 12, 16, 12)
             layoutParams = LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT
             ).apply {
-                setMargins(0, 16, 0, 0)
+                setMargins(0, 8, 0, 24)
+            }
+            setOnClickListener {
+                resetToDefaultLayout()
+            }
+        }
+        rootLayout.addView(resetButton)
+        
+        // 레이아웃 슬롯들
+        createLayoutSlots()
+        
+        // 뒤로 가기 버튼
+        val backButton = Button(this).apply {
+            text = "뒤로 가기"
+            textSize = 14f
+            setBackgroundColor(0xFF424242.toInt())
+            setTextColor(Color.WHITE)
+            setPadding(16, 14, 16, 14)
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply {
+                setMargins(0, 24, 0, 0)
             }
             setOnClickListener {
                 finish()
@@ -81,278 +103,206 @@ class LayoutManagerActivity : AppCompatActivity() {
         // ScrollView로 감싸기
         val scrollView = ScrollView(this).apply {
             addView(rootLayout)
+            setBackgroundColor(0xFF121212.toInt())
         }
         
         setContentView(scrollView)
     }
     
-    private fun addDivider() {
-        val divider = android.view.View(this).apply {
-            layoutParams = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                2
-            ).apply {
-                setMargins(0, 24, 0, 24)
-            }
-            setBackgroundColor(0xFF333333.toInt())
-        }
-        rootLayout.addView(divider)
-    }
-    
-    private fun createPresetSection() {
-        val sectionTitle = TextView(this).apply {
-            text = "📋 프리셋 레이아웃"
-            textSize = 18f
-            setTextColor(Color.WHITE)
-            setPadding(0, 0, 0, 16)
-        }
-        rootLayout.addView(sectionTitle)
-        
-        val presets = listOf(
-            Pair("default", "🏠 기본 레이아웃"),
-            Pair("driver_focused", "🚗 운전자 중심"),
-            Pair("minimal", "📱 최소화"),
-            Pair("racing", "🏁 레이싱 모드")
-        )
-        
-        presets.forEach { (presetId, name) ->
-            val button = Button(this).apply {
-                text = name
-                setBackgroundColor(0xFF2196F3.toInt())
-                setTextColor(Color.WHITE)
+    private fun createLayoutSlots() {
+        for (slotNumber in 1..LAYOUT_SLOT_COUNT) {
+            val slotName = "layout_slot_$slotNumber"
+            val savedLayout = layoutManager.loadLayout(slotName)
+            
+            // 슬롯 컨테이너
+            val slotContainer = LinearLayout(this).apply {
+                orientation = LinearLayout.VERTICAL
+                setPadding(16, 14, 16, 14)
+                setBackgroundColor(0xFF1E1E1E.toInt())
                 layoutParams = LinearLayout.LayoutParams(
                     LinearLayout.LayoutParams.MATCH_PARENT,
                     LinearLayout.LayoutParams.WRAP_CONTENT
                 ).apply {
-                    setMargins(0, 8, 0, 8)
+                    setMargins(0, 0, 0, 12)
+                }
+            }
+            
+            // 슬롯 제목
+            val slotTitle = TextView(this).apply {
+                text = "레이아웃 $slotNumber"
+                textSize = 16f
+                setTextColor(Color.WHITE)
+                setPadding(0, 0, 0, 8)
+            }
+            slotContainer.addView(slotTitle)
+            
+            // 상태 표시
+            val statusText = TextView(this).apply {
+                text = if (savedLayout != null) {
+                    "저장됨"
+                } else {
+                    "비어있음"
+                }
+                textSize = 12f
+                setTextColor(if (savedLayout != null) 0xFF4CAF50.toInt() else 0xFF757575.toInt())
+                setPadding(0, 0, 0, 10)
+            }
+            slotContainer.addView(statusText)
+            
+            // 버튼 컨테이너
+            val buttonContainer = LinearLayout(this).apply {
+                orientation = LinearLayout.HORIZONTAL
+                layoutParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+                )
+            }
+            
+            // 불러오기 버튼
+            val loadButton = Button(this).apply {
+                text = "불러오기"
+                textSize = 13f
+                setBackgroundColor(if (savedLayout != null) 0xFF1976D2.toInt() else 0xFF424242.toInt())
+                setTextColor(Color.WHITE)
+                isEnabled = savedLayout != null
+                setPadding(12, 10, 12, 10)
+                layoutParams = LinearLayout.LayoutParams(
+                    0,
+                    LinearLayout.LayoutParams.WRAP_CONTENT,
+                    1f
+                ).apply {
+                    setMargins(0, 0, 6, 0)
                 }
                 setOnClickListener {
-                    applyPreset(presetId, name)
+                    loadLayoutFromSlot(slotName, slotNumber)
                 }
             }
-            rootLayout.addView(button)
-        }
-    }
-    
-    private fun createSaveSection() {
-        val sectionTitle = TextView(this).apply {
-            text = "💾 현재 레이아웃 저장"
-            textSize = 18f
-            setTextColor(Color.WHITE)
-            setPadding(0, 0, 0, 16)
-        }
-        rootLayout.addView(sectionTitle)
-        
-        val saveButton = Button(this).apply {
-            text = "💾 현재 레이아웃 저장하기"
-            setBackgroundColor(0xFF4CAF50.toInt())
-            setTextColor(Color.WHITE)
-            layoutParams = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT
-            )
-            setOnClickListener {
-                showSaveDialog()
+            buttonContainer.addView(loadButton)
+            
+            // 저장 버튼
+            val saveButton = Button(this).apply {
+                text = "저장"
+                textSize = 13f
+                setBackgroundColor(0xFF4CAF50.toInt())
+                setTextColor(Color.WHITE)
+                setPadding(12, 10, 12, 10)
+                layoutParams = LinearLayout.LayoutParams(
+                    0,
+                    LinearLayout.LayoutParams.WRAP_CONTENT,
+                    1f
+                ).apply {
+                    setMargins(6, 0, 6, 0)
+                }
+                setOnClickListener {
+                    saveLayoutToSlot(slotName, slotNumber, statusText, loadButton)
+                }
             }
-        }
-        rootLayout.addView(saveButton)
-    }
-    
-    private fun createSavedLayoutsSection() {
-        val sectionTitle = TextView(this).apply {
-            text = "📂 저장된 레이아웃"
-            textSize = 18f
-            setTextColor(Color.WHITE)
-            setPadding(0, 0, 0, 16)
-        }
-        rootLayout.addView(sectionTitle)
-        
-        savedLayoutsContainer = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-        }
-        rootLayout.addView(savedLayoutsContainer)
-        
-        loadSavedLayouts()
-    }
-    
-    private fun applyPreset(presetId: String, name: String) {
-        val displayMetrics = resources.displayMetrics
-        val screenWidth = displayMetrics.widthPixels
-        val screenHeight = displayMetrics.heightPixels
-        
-        val layout = when (presetId) {
-            "default" -> getDefaultLayout(screenWidth, screenHeight)
-            "driver_focused" -> getDriverFocusedLayout(screenWidth, screenHeight)
-            "minimal" -> getMinimalLayout(screenWidth, screenHeight)
-            "racing" -> getRacingLayout(screenWidth, screenHeight)
-            else -> getDefaultLayout(screenWidth, screenHeight)
-        }
-        
-        applyLayout(layout)
-        Toast.makeText(this, "$name 적용됨", Toast.LENGTH_SHORT).show()
-    }
-    
-    private fun getDefaultLayout(screenWidth: Int, screenHeight: Int): PresetLayoutConfig {
-        return PresetLayoutConfig(
-            name = "기본",
-            components = mapOf(
-                "speedometer" to PresetComponentConfig(32f, 32f, 200, 150, 1.0f, true),
-                "autopilot" to PresetComponentConfig(screenWidth - 232f, 32f, 180, 100, 1.0f, true)
-            )
-        )
-    }
-    
-    private fun getDriverFocusedLayout(screenWidth: Int, screenHeight: Int): PresetLayoutConfig {
-        return PresetLayoutConfig(
-            name = "운전자 중심",
-            components = mapOf(
-                "speedometer" to PresetComponentConfig(16f, screenHeight / 2f - 100f, 240, 180, 1.2f, true),
-                "autopilot" to PresetComponentConfig(16f, 16f, 200, 120, 1.1f, true)
-            )
-        )
-    }
-    
-    private fun getMinimalLayout(screenWidth: Int, screenHeight: Int): PresetLayoutConfig {
-        return PresetLayoutConfig(
-            name = "최소화",
-            components = mapOf(
-                "speedometer" to PresetComponentConfig(screenWidth - 158f, screenHeight - 128f, 150, 120, 0.7f, true),
-                "autopilot" to PresetComponentConfig(8f, screenHeight - 88f, 120, 80, 0.6f, true)
-            )
-        )
-    }
-    
-    private fun getRacingLayout(screenWidth: Int, screenHeight: Int): PresetLayoutConfig {
-        val centerX = screenWidth / 2f
-        return PresetLayoutConfig(
-            name = "레이싱",
-            components = mapOf(
-                "speedometer" to PresetComponentConfig(centerX - 150f, screenHeight - 216f, 300, 200, 1.5f, true),
-                "autopilot" to PresetComponentConfig(centerX - 100f, 16f, 200, 100, 1.0f, true)
-            )
-        )
-    }
-    
-    private fun showSaveDialog() {
-        val input = EditText(this).apply {
-            hint = "레이아웃 이름"
-            setText("내 레이아웃 ${System.currentTimeMillis() / 1000}")
-        }
-        
-        AlertDialog.Builder(this)
-            .setTitle("레이아웃 저장")
-            .setView(input)
-            .setPositiveButton("저장") { _, _ ->
-                val name = input.text.toString().ifEmpty { "내 레이아웃" }
-                saveCurrentLayout(name)
+            buttonContainer.addView(saveButton)
+            
+            // 삭제 버튼
+            val deleteButton = Button(this).apply {
+                text = "삭제"
+                textSize = 13f
+                setBackgroundColor(0xFFF44336.toInt())
+                setTextColor(Color.WHITE)
+                isEnabled = savedLayout != null
+                setPadding(12, 10, 12, 10)
+                layoutParams = LinearLayout.LayoutParams(
+                    0,
+                    LinearLayout.LayoutParams.WRAP_CONTENT,
+                    0.7f
+                ).apply {
+                    setMargins(6, 0, 0, 0)
+                }
+                setOnClickListener {
+                    deleteLayoutFromSlot(slotName, slotNumber, statusText, loadButton, this)
+                }
             }
-            .setNegativeButton("취소", null)
-            .show()
+            buttonContainer.addView(deleteButton)
+            
+            slotContainer.addView(buttonContainer)
+            rootLayout.addView(slotContainer)
+        }
     }
     
-    private fun saveCurrentLayout(name: String) {
+    private fun loadLayoutFromSlot(slotName: String, slotNumber: Int) {
+        val layout = layoutManager.loadLayout(slotName)
+        if (layout != null) {
+            applyLayout(layout)
+            Toast.makeText(this, "레이아웃 $slotNumber 적용됨", Toast.LENGTH_SHORT).show()
+            finish()  // 적용 후 메인 화면으로
+        } else {
+            Toast.makeText(this, "레이아웃을 불러올 수 없습니다", Toast.LENGTH_SHORT).show()
+        }
+    }
+    
+    private fun saveLayoutToSlot(slotName: String, slotNumber: Int, statusText: TextView, loadButton: Button) {
         // 현재 저장된 컴포넌트 상태 읽기
         val speedState = prefs.getComponentState("speedometer")
-        val autopilotState = prefs.getComponentState("autopilot")
+        val wheelState = prefs.getComponentState("steering_wheel")
+        val holdState = prefs.getComponentState("auto_hold")
         
-        if (speedState == null || autopilotState == null) {
-            Toast.makeText(this, "저장된 레이아웃이 없습니다", Toast.LENGTH_SHORT).show()
+        if (speedState == null) {
+            Toast.makeText(this, "저장할 레이아웃이 없습니다\n먼저 메인 화면에서 레이아웃을 편집하세요", Toast.LENGTH_LONG).show()
             return
         }
         
-        val layout = PresetLayoutConfig(
-            name = name,
-            components = mapOf(
-                "speedometer" to PresetComponentConfig(
-                    speedState.x, speedState.y, speedState.width, 
-                    speedState.height, speedState.scale, speedState.visible
-                ),
-                "autopilot" to PresetComponentConfig(
-                    autopilotState.x, autopilotState.y, autopilotState.width,
-                    autopilotState.height, autopilotState.scale, autopilotState.visible
-                )
-            )
+        val components = mutableMapOf<String, PresetComponentConfig>()
+        
+        // 속도계 (필수)
+        components["speedometer"] = PresetComponentConfig(
+            speedState.x, speedState.y, speedState.width, 
+            speedState.height, speedState.scale, speedState.visible
         )
         
-        if (layoutManager.saveLayout(name, layout)) {
-            Toast.makeText(this, "레이아웃 '$name' 저장됨", Toast.LENGTH_SHORT).show()
-            loadSavedLayouts()
+        // 조향각 (선택)
+        wheelState?.let {
+            components["steering_wheel"] = PresetComponentConfig(
+                it.x, it.y, it.width, it.height, it.scale, it.visible
+            )
+        }
+        
+        // 오토홀드 (선택)
+        holdState?.let {
+            components["auto_hold"] = PresetComponentConfig(
+                it.x, it.y, it.width, it.height, it.scale, it.visible
+            )
+        }
+        
+        val layout = PresetLayoutConfig(
+            name = "레이아웃 $slotNumber",
+            components = components
+        )
+        
+        if (layoutManager.saveLayout(slotName, layout)) {
+            Toast.makeText(this, "레이아웃 $slotNumber 저장됨", Toast.LENGTH_SHORT).show()
+            statusText.text = "✓ 저장됨 (레이아웃 $slotNumber)"
+            statusText.setTextColor(0xFF4CAF50.toInt())
+            loadButton.isEnabled = true
+            loadButton.setBackgroundColor(0xFF2196F3.toInt())
         } else {
             Toast.makeText(this, "저장 실패", Toast.LENGTH_SHORT).show()
         }
     }
     
-    private fun loadSavedLayouts() {
-        savedLayoutsContainer.removeAllViews()
-        
-        val layoutNames = layoutManager.getLayoutNames()
-        
-        if (layoutNames.isEmpty()) {
-            val emptyText = TextView(this).apply {
-                text = "저장된 레이아웃이 없습니다"
-                textSize = 14f
-                setTextColor(0xFF888888.toInt())
-                gravity = Gravity.CENTER
-                setPadding(0, 16, 0, 16)
-            }
-            savedLayoutsContainer.addView(emptyText)
-            return
-        }
-        
-        layoutNames.forEach { name ->
-            val itemLayout = LinearLayout(this).apply {
-                orientation = LinearLayout.HORIZONTAL
-                layoutParams = LinearLayout.LayoutParams(
-                    LinearLayout.LayoutParams.MATCH_PARENT,
-                    LinearLayout.LayoutParams.WRAP_CONTENT
-                ).apply {
-                    setMargins(0, 8, 0, 8)
+    private fun deleteLayoutFromSlot(slotName: String, slotNumber: Int, statusText: TextView, loadButton: Button, deleteButton: Button) {
+        AlertDialog.Builder(this)
+            .setTitle("레이아웃 삭제")
+            .setMessage("레이아웃 $slotNumber 을(를) 삭제하시겠습니까?")
+            .setPositiveButton("삭제") { _, _ ->
+                if (layoutManager.deleteLayout(slotName)) {
+                    Toast.makeText(this, "레이아웃 $slotNumber 삭제됨", Toast.LENGTH_SHORT).show()
+                    statusText.text = "비어있음"
+                    statusText.setTextColor(0xFF888888.toInt())
+                    loadButton.isEnabled = false
+                    loadButton.setBackgroundColor(0xFF444444.toInt())
+                    deleteButton.isEnabled = false
+                } else {
+                    Toast.makeText(this, "삭제 실패", Toast.LENGTH_SHORT).show()
                 }
             }
-            
-            val loadButton = Button(this).apply {
-                text = "📂 $name"
-                setBackgroundColor(0xFF9C27B0.toInt())
-                setTextColor(Color.WHITE)
-                layoutParams = LinearLayout.LayoutParams(
-                    0,
-                    LinearLayout.LayoutParams.WRAP_CONTENT,
-                    1f
-                )
-                setOnClickListener {
-                    loadLayout(name)
-                }
-            }
-            itemLayout.addView(loadButton)
-            
-            val deleteButton = Button(this).apply {
-                text = "🗑️"
-                setBackgroundColor(0xFFF44336.toInt())
-                setTextColor(Color.WHITE)
-                layoutParams = LinearLayout.LayoutParams(
-                    LinearLayout.LayoutParams.WRAP_CONTENT,
-                    LinearLayout.LayoutParams.WRAP_CONTENT
-                ).apply {
-                    setMargins(8, 0, 0, 0)
-                }
-                setOnClickListener {
-                    showDeleteConfirmDialog(name)
-                }
-            }
-            itemLayout.addView(deleteButton)
-            
-            savedLayoutsContainer.addView(itemLayout)
-        }
-    }
-    
-    private fun loadLayout(name: String) {
-        val layout = layoutManager.loadLayout(name)
-        if (layout != null) {
-            applyLayout(layout)
-            Toast.makeText(this, "레이아웃 '$name' 적용됨", Toast.LENGTH_SHORT).show()
-        } else {
-            Toast.makeText(this, "레이아웃 로드 실패", Toast.LENGTH_SHORT).show()
-        }
+            .setNegativeButton("취소", null)
+            .show()
     }
     
     private fun applyLayout(layout: PresetLayoutConfig) {
@@ -362,22 +312,50 @@ class LayoutManagerActivity : AppCompatActivity() {
             )
             prefs.saveComponentState(componentId, position)
         }
-        
-        // 변경사항을 즉시 반영하기 위해 Activity 종료
-        finish()
     }
     
-    private fun showDeleteConfirmDialog(name: String) {
+    private fun resetToDefaultLayout() {
         AlertDialog.Builder(this)
-            .setTitle("레이아웃 삭제")
-            .setMessage("'$name' 레이아웃을 삭제하시겠습니까?")
-            .setPositiveButton("삭제") { _, _ ->
-                if (layoutManager.deleteLayout(name)) {
-                    Toast.makeText(this, "레이아웃 삭제됨", Toast.LENGTH_SHORT).show()
-                    loadSavedLayouts()
-                } else {
-                    Toast.makeText(this, "삭제 실패", Toast.LENGTH_SHORT).show()
-                }
+            .setTitle("기본 레이아웃으로 초기화")
+            .setMessage("현재 레이아웃을 기본값으로 초기화하시겠습니까?\n이 작업은 되돌릴 수 없습니다.")
+            .setPositiveButton("초기화") { _, _ ->
+                // 기본 레이아웃 생성
+                val displayMetrics = resources.displayMetrics
+                val screenWidth = displayMetrics.widthPixels
+                
+                val defaultLayout = PresetLayoutConfig(
+                    name = "기본",
+                    components = mapOf(
+                        "speedometer" to PresetComponentConfig(
+                            x = 16f,
+                            y = 16f,
+                            width = 250,
+                            height = 200,
+                            scale = 1.0f,
+                            visible = true
+                        ),
+                        "steering_wheel" to PresetComponentConfig(
+                            x = screenWidth - 170f,
+                            y = 16f,
+                            width = 150,
+                            height = 180,
+                            scale = 1.0f,
+                            visible = true
+                        ),
+                        "auto_hold" to PresetComponentConfig(
+                            x = 16f,
+                            y = 400f,
+                            width = 120,
+                            height = 100,
+                            scale = 1.0f,
+                            visible = true
+                        )
+                    )
+                )
+                
+                applyLayout(defaultLayout)
+                Toast.makeText(this, "기본 레이아웃으로 초기화되었습니다", Toast.LENGTH_SHORT).show()
+                finish()
             }
             .setNegativeButton("취소", null)
             .show()
