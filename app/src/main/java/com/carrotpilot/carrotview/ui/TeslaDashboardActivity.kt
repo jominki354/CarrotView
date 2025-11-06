@@ -47,6 +47,16 @@ class TeslaDashboardActivity : AppCompatActivity() {
         autopilotIndicator = findViewById(R.id.autopilotIndicator)
         alertText = findViewById(R.id.alertText)
         
+        // 버전 정보 설정 (항상 표시)
+        val versionInfo = findViewById<TextView>(R.id.versionInfo)
+        val buildTime = try {
+            val timestamp = com.carrotpilot.carrotview.BuildConfig.BUILD_TIME.toLong()
+            java.text.SimpleDateFormat("MM-dd HH:mm:ss", java.util.Locale.getDefault()).format(java.util.Date(timestamp))
+        } catch (e: Exception) {
+            "Unknown"
+        }
+        versionInfo.text = "v${com.carrotpilot.carrotview.BuildConfig.VERSION_NAME} | $buildTime"
+        
         // 전체 화면 모드
         window.decorView.systemUiVisibility = (
             android.view.View.SYSTEM_UI_FLAG_FULLSCREEN or

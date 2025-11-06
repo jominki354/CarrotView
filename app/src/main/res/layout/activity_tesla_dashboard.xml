@@ -97,6 +97,20 @@
 
     </LinearLayout>
 
+    <!-- 상단 중앙 - 버전 정보 (항상 표시) -->
+    <TextView
+        android:id="@+id/versionInfo"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_horizontal|top"
+        android:layout_marginTop="8dp"
+        android:padding="4dp"
+        android:textColor="#00BCD4"
+        android:textSize="10sp"
+        android:fontFamily="sans-serif"
+        android:gravity="center"
+        android:alpha="0.7" />
+
     <!-- 중앙 - 경고 메시지 / 연결 상태 -->
     <TextView
         android:id="@+id/alertText"
