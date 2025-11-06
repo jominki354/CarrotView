@@ -90,17 +90,13 @@ class TeslaDashboardActivity : AppCompatActivity() {
                 // 주행 상태 확인
                 val isDriving = data.controlsState.enabled
                 val isActive = data.controlsState.active
+                val hasSpeed = data.carState.vEgo > 0.5  // 0.5 m/s (약 2 km/h) 이상
                 
                 when {
-                    // 크루즈 활성화 - 주행 중 (시각화 표시)
-                    isActive -> {
+                    // 오픈파일럿 활성화 또는 속도가 있으면 주행 화면 표시
+                    isDriving || hasSpeed -> {
                         hideDisconnectedState()
                         updateUIWithRealData(data)
-                    }
-                    // 차량 연결됨 - 주행 준비 완료
-                    isDriving -> {
-                        showReadyState()
-                        updateUIWithRealData(data)  // 속도 등은 업데이트
                     }
                     // 차량 미연결 - 대기 중
                     else -> {
