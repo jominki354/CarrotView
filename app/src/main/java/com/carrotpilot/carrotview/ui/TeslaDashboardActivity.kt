@@ -1,15 +1,20 @@
 package com.carrotpilot.carrotview.ui
 
+import android.content.Intent
 import android.graphics.Color
 import android.os.Bundle
+import android.view.Gravity
 import android.view.View
+import android.widget.Button
+import android.widget.FrameLayout
 import android.widget.TextView
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import com.carrotpilot.carrotview.R
 import com.carrotpilot.carrotview.data.preferences.AppPreferences
 import com.carrotpilot.carrotview.network.ConnectionState
-import com.carrotpilot.carrotview.ui.components.TeslaPerspectiveView
+import com.carrotpilot.carrotview.ui.components.*
 import com.carrotpilot.carrotview.ui.controller.DashboardController
 import com.carrotpilot.carrotview.data.models.*
 import kotlinx.coroutines.launch
@@ -21,41 +26,29 @@ class TeslaDashboardActivity : AppCompatActivity() {
     
     private lateinit var dashboardController: DashboardController
     private lateinit var prefs: AppPreferences
+    private lateinit var rootLayout: FrameLayout
     private lateinit var visualizationView: TeslaPerspectiveView
-    private lateinit var currentSpeed: TextView
-    private lateinit var cruiseSpeed: TextView
-    private lateinit var autopilotStatus: TextView
-    private lateinit var autopilotState: TextView
-    private lateinit var autopilotIndicator: View
     private lateinit var alertText: TextView
+    private lateinit var versionInfo: TextView
+    
+    // 드래그 가능한 컴포넌트들
+    private lateinit var speedometer: DraggableSpeedometer
+    private lateinit var autopilotStatusView: DraggableAutopilotStatus
+    
+    // 편집 모드
+    private var isEditMode = false
+    private lateinit var editModeButton: Button
     
     private var isConnected = false
     
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_tesla_dashboard)
         
         // 설정 초기화
         prefs = AppPreferences(this)
         
-        // 뷰 초기화
-        visualizationView = findViewById(R.id.visualizationView)
-        currentSpeed = findViewById(R.id.currentSpeed)
-        cruiseSpeed = findViewById(R.id.cruiseSpeed)
-        autopilotStatus = findViewById(R.id.autopilotStatus)
-        autopilotState = findViewById(R.id.autopilotState)
-        autopilotIndicator = findViewById(R.id.autopilotIndicator)
-        alertText = findViewById(R.id.alertText)
-        
-        // 버전 정보 설정 (항상 표시)
-        val versionInfo = findViewById<TextView>(R.id.versionInfo)
-        val buildTime = try {
-            val timestamp = com.carrotpilot.carrotview.BuildConfig.BUILD_TIME.toLong()
-            java.text.SimpleDateFormat("MM-dd HH:mm:ss", java.util.Locale.getDefault()).format(java.util.Date(timestamp))
-        } catch (e: Exception) {
-            "Unknown"
-        }
-        versionInfo.text = "v${com.carrotpilot.carrotview.BuildConfig.VERSION_NAME} | $buildTime"
+        // 프로그래밍 방식으로 UI 생성
+        createUI()
         
         // 전체 화면 모드
         window.decorView.systemUiVisibility = (
@@ -74,11 +67,237 @@ class TeslaDashboardActivity : AppCompatActivity() {
         // 리스너 설정
         setupListeners()
         
+        // 저장된 레이아웃 복원
+        restoreLayout()
+        
         // 연결 안 됨 상태로 시작
         showDisconnectedState()
         
         // 백그라운드에서 자동 연결 시도
         startAutoConnection()
+    }
+    
+    private fun createUI() {
+        // 루트 레이아웃
+        rootLayout = FrameLayout(this).apply {
+            setBackgroundColor(Color.BLACK)
+        }
+        
+        // 차량 시각화 (배경)
+        visualizationView = TeslaPerspectiveView(this).apply {
+            layoutParams = FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT,
+                FrameLayout.LayoutParams.MATCH_PARENT
+            )
+        }
+        rootLayout.addView(visualizationView)
+        
+        // 속도계 (왼쪽 상단) - 드래그 가능
+        speedometer = DraggableSpeedometer(this).apply {
+            layoutParams = FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.WRAP_CONTENT,
+                FrameLayout.LayoutParams.WRAP_CONTENT
+            ).apply {
+                gravity = Gravity.START or Gravity.TOP
+                setMargins(32, 32, 0, 0)
+            }
+        }
+        rootLayout.addView(speedometer)
+        
+        // 오토파일럿 상태 (오른쪽 상단) - 드래그 가능
+        autopilotStatusView = DraggableAutopilotStatus(this).apply {
+            layoutParams = FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.WRAP_CONTENT,
+                FrameLayout.LayoutParams.WRAP_CONTENT
+            ).apply {
+                gravity = Gravity.END or Gravity.TOP
+                setMargins(0, 32, 32, 0)
+            }
+        }
+        rootLayout.addView(autopilotStatusView)
+        
+        // 버전 정보 (상단 중앙)
+        versionInfo = TextView(this).apply {
+            val buildTime = try {
+                val timestamp = com.carrotpilot.carrotview.BuildConfig.BUILD_TIME.toLong()
+                java.text.SimpleDateFormat("MM-dd HH:mm:ss", java.util.Locale.getDefault()).format(java.util.Date(timestamp))
+            } catch (e: Exception) {
+                "Unknown"
+            }
+            text = "v${com.carrotpilot.carrotview.BuildConfig.VERSION_NAME} | $buildTime"
+            textSize = 10f
+            setTextColor(0xFF00BCD4.toInt())
+            alpha = 0.7f
+            gravity = Gravity.CENTER
+            layoutParams = FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.WRAP_CONTENT,
+                FrameLayout.LayoutParams.WRAP_CONTENT
+            ).apply {
+                gravity = Gravity.CENTER_HORIZONTAL or Gravity.TOP
+                setMargins(0, 8, 0, 0)
+            }
+        }
+        rootLayout.addView(versionInfo)
+        
+        // 중앙 경고 메시지
+        alertText = TextView(this).apply {
+            textSize = 16f
+            setTextColor(getColor(R.color.status_warning))
+            gravity = Gravity.CENTER
+            visibility = View.GONE
+            layoutParams = FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.WRAP_CONTENT,
+                FrameLayout.LayoutParams.WRAP_CONTENT
+            ).apply {
+                gravity = Gravity.CENTER
+            }
+        }
+        rootLayout.addView(alertText)
+        
+        // 편집 모드 토글 버튼 (상단 중앙 오른쪽)
+        editModeButton = Button(this).apply {
+            text = "🔓"
+            textSize = 12f
+            setBackgroundColor(0x88000000.toInt())
+            setTextColor(Color.WHITE)
+            layoutParams = FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.WRAP_CONTENT,
+                FrameLayout.LayoutParams.WRAP_CONTENT
+            ).apply {
+                gravity = Gravity.CENTER_HORIZONTAL or Gravity.TOP
+                setMargins(100, 16, 0, 0)
+            }
+            setOnClickListener {
+                toggleEditMode()
+            }
+        }
+        rootLayout.addView(editModeButton)
+        
+        // 설정 버튼 (상단 오른쪽 끝)
+        val settingsButton = Button(this).apply {
+            text = "⚙️"
+            textSize = 12f
+            setBackgroundColor(0x88000000.toInt())
+            setTextColor(Color.WHITE)
+            layoutParams = FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.WRAP_CONTENT,
+                FrameLayout.LayoutParams.WRAP_CONTENT
+            ).apply {
+                gravity = Gravity.END or Gravity.TOP
+                setMargins(0, 16, 16, 0)
+            }
+            setOnClickListener {
+                openLayoutManager()
+            }
+        }
+        rootLayout.addView(settingsButton)
+        
+        // 표시/숨김 토글 버튼들 (편집 모드에서만 표시)
+        createVisibilityToggleButtons()
+        
+        setContentView(rootLayout)
+    }
+    
+    private fun createVisibilityToggleButtons() {
+        // 속도계 표시/숨김 버튼
+        val speedToggleButton = Button(this).apply {
+            text = "👁️ 속도계"
+            textSize = 10f
+            setBackgroundColor(0x88000000.toInt())
+            setTextColor(Color.WHITE)
+            layoutParams = FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.WRAP_CONTENT,
+                FrameLayout.LayoutParams.WRAP_CONTENT
+            ).apply {
+                gravity = Gravity.START or Gravity.BOTTOM
+                setMargins(16, 0, 0, 16)
+            }
+            visibility = View.GONE
+            tag = "visibility_toggle"
+            setOnClickListener {
+                speedometer.toggleVisibility()
+                text = if (speedometer.visibility == View.VISIBLE) "👁️ 속도계" else "👁️‍🗨️ 속도계"
+            }
+        }
+        rootLayout.addView(speedToggleButton)
+        
+        // 오토파일럿 표시/숨김 버튼
+        val autopilotToggleButton = Button(this).apply {
+            text = "👁️ 오토파일럿"
+            textSize = 10f
+            setBackgroundColor(0x88000000.toInt())
+            setTextColor(Color.WHITE)
+            layoutParams = FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.WRAP_CONTENT,
+                FrameLayout.LayoutParams.WRAP_CONTENT
+            ).apply {
+                gravity = Gravity.END or Gravity.BOTTOM
+                setMargins(0, 0, 16, 16)
+            }
+            visibility = View.GONE
+            tag = "visibility_toggle"
+            setOnClickListener {
+                autopilotStatusView.toggleVisibility()
+                text = if (autopilotStatusView.visibility == View.VISIBLE) "👁️ 오토파일럿" else "👁️‍🗨️ 오토파일럿"
+            }
+        }
+        rootLayout.addView(autopilotToggleButton)
+    }
+    
+    private fun toggleEditMode() {
+        isEditMode = !isEditMode
+        
+        // 모든 드래그 가능한 컴포넌트의 편집 모드 설정
+        speedometer.isEditMode = isEditMode
+        autopilotStatusView.isEditMode = isEditMode
+        
+        // 표시/숨김 토글 버튼들 표시/숨김
+        for (i in 0 until rootLayout.childCount) {
+            val child = rootLayout.getChildAt(i)
+            if (child.tag == "visibility_toggle") {
+                child.visibility = if (isEditMode) View.VISIBLE else View.GONE
+            }
+        }
+        
+        // 버튼 텍스트 변경
+        editModeButton.text = if (isEditMode) "🔒" else "🔓"
+        
+        if (isEditMode) {
+            Toast.makeText(this, "편집 모드: 드래그/핀치/토글 가능", Toast.LENGTH_SHORT).show()
+        } else {
+            // 레이아웃 저장
+            saveLayout()
+            Toast.makeText(this, "레이아웃 저장됨", Toast.LENGTH_SHORT).show()
+        }
+    }
+    
+    private fun openLayoutManager() {
+        val intent = Intent(this, LayoutManagerActivity::class.java)
+        startActivity(intent)
+    }
+    
+    private fun saveLayout() {
+        val speedPos = speedometer.savePosition()
+        val autopilotPos = autopilotStatusView.savePosition()
+        
+        // SharedPreferences에 전체 상태 저장
+        prefs.saveComponentState("speedometer", speedPos)
+        prefs.saveComponentState("autopilot", autopilotPos)
+    }
+    
+    private fun restoreLayout() {
+        // SharedPreferences에서 전체 상태 복원
+        val speedState = prefs.getComponentState("speedometer")
+        val autopilotState = prefs.getComponentState("autopilot")
+        
+        speedState?.let { speedometer.restorePosition(it) }
+        autopilotState?.let { autopilotStatusView.restorePosition(it) }
+    }
+    
+    override fun onResume() {
+        super.onResume()
+        // 레이아웃 관리에서 돌아왔을 때 레이아웃 다시 로드
+        restoreLayout()
     }
     
     private fun setupListeners() {
@@ -89,7 +308,6 @@ class TeslaDashboardActivity : AppCompatActivity() {
                 
                 // 주행 상태 확인
                 val isDriving = data.controlsState.enabled
-                val isActive = data.controlsState.active
                 val hasSpeed = data.carState.vEgo > 0.5  // 0.5 m/s (약 2 km/h) 이상
                 
                 when {
@@ -150,22 +368,18 @@ class TeslaDashboardActivity : AppCompatActivity() {
         // 시각화 숨기기
         visualizationView.visibility = View.INVISIBLE
         
-        // 속도 표시 숨기기
-        currentSpeed.text = "--"
-        cruiseSpeed.text = "--"
+        // 속도 표시 초기화
+        speedometer.updateSpeed(0f, 0f)
         
-        // 크루즈 상태
-        autopilotIndicator.setBackgroundColor(getColor(R.color.status_inactive))
-        autopilotState.text = "비활성"
-        autopilotState.setTextColor(getColor(R.color.text_tertiary))
+        // 오토파일럿 상태 초기화
+        autopilotStatusView.updateStatus(false, false)
         
         // 중앙에 "연결 안 됨" 표시
         alertText.visibility = View.VISIBLE
         alertText.text = "연결 안 됨\n\nCarrotPilot 연결 대기 중..."
         alertText.setTextColor(getColor(R.color.text_secondary))
         alertText.textSize = 24f
-        alertText.setBackgroundColor(android.graphics.Color.TRANSPARENT)
-        alertText.gravity = android.view.Gravity.CENTER
+        alertText.gravity = Gravity.CENTER
     }
     
     private fun showConnectingState() {
@@ -174,8 +388,7 @@ class TeslaDashboardActivity : AppCompatActivity() {
         alertText.text = "연결 중..."
         alertText.setTextColor(getColor(R.color.text_secondary))
         alertText.textSize = 24f
-        alertText.setBackgroundColor(android.graphics.Color.TRANSPARENT)
-        alertText.gravity = android.view.Gravity.CENTER
+        alertText.gravity = Gravity.CENTER
     }
     
     private fun showWaitingState() {
@@ -184,18 +397,7 @@ class TeslaDashboardActivity : AppCompatActivity() {
         alertText.text = "주행 준비 중\n\n차량 시동 및 카메라 활성화 대기 중..."
         alertText.setTextColor(getColor(R.color.text_secondary))
         alertText.textSize = 24f
-        alertText.setBackgroundColor(android.graphics.Color.TRANSPARENT)
-        alertText.gravity = android.view.Gravity.CENTER
-    }
-    
-    private fun showReadyState() {
-        visualizationView.visibility = View.INVISIBLE
-        alertText.visibility = View.VISIBLE
-        alertText.text = "주행 준비 완료\n\n크루즈 활성화 대기 중..."
-        alertText.setTextColor(getColor(R.color.status_active))
-        alertText.textSize = 24f
-        alertText.setBackgroundColor(android.graphics.Color.TRANSPARENT)
-        alertText.gravity = android.view.Gravity.CENTER
+        alertText.gravity = Gravity.CENTER
     }
     
     private fun hideDisconnectedState() {
@@ -214,28 +416,13 @@ class TeslaDashboardActivity : AppCompatActivity() {
         // 속도 업데이트
         val speedKmh = data.carState.vEgo * 3.6f
         val cruiseKmh = data.carState.vCruise * 3.6f
-        currentSpeed.text = speedKmh.toInt().toString()
-        cruiseSpeed.text = cruiseKmh.toInt().toString()
+        speedometer.updateSpeed(speedKmh, cruiseKmh)
+        
+        // 오토파일럿 상태 업데이트
+        autopilotStatusView.updateStatus(data.controlsState.enabled, data.controlsState.active)
         
         // 시각화 뷰 업데이트
         visualizationView.updateData(extendedData)
-        
-        // 크루즈 상태
-        if (data.controlsState.enabled) {
-            if (data.controlsState.active) {
-                autopilotIndicator.setBackgroundResource(R.drawable.circle_indicator)
-                autopilotState.text = "활성"
-                autopilotState.setTextColor(getColor(R.color.status_active))
-            } else {
-                autopilotIndicator.setBackgroundColor(getColor(R.color.autopilot_standby))
-                autopilotState.text = "대기"
-                autopilotState.setTextColor(getColor(R.color.autopilot_standby))
-            }
-        } else {
-            autopilotIndicator.setBackgroundColor(getColor(R.color.status_inactive))
-            autopilotState.text = "비활성"
-            autopilotState.setTextColor(getColor(R.color.text_tertiary))
-        }
         
         // 경고 메시지
         if (data.controlsState.alertText.isNotEmpty()) {
@@ -254,19 +441,17 @@ class TeslaDashboardActivity : AppCompatActivity() {
     
     private fun convertToExtendedData(data: DrivingData): ExtendedDrivingData {
         // DrivingData를 ExtendedDrivingData로 변환
-        // liveTracks를 radarTracks로 변환
         val radarTracks = data.liveTracks.map { track ->
             RadarTrack(
                 trackId = track.trackId,
                 dRel = track.dRel,
                 yRel = track.yRel,
                 vRel = track.vRel,
-                aRel = 0f,  // 가속도 정보 없음
+                aRel = 0f,
                 prob = 0.9f
             )
         }
         
-        // 기본 ModelV2Data 생성 (실제 데이터가 없으면 빈 데이터)
         val modelV2 = ModelV2Data(
             leftLane = LaneLine(points = emptyList(), prob = 0f),
             rightLane = LaneLine(points = emptyList(), prob = 0f),
