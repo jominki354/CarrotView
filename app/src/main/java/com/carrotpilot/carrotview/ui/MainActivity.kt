@@ -59,31 +59,35 @@ class MainActivity : AppCompatActivity() {
     }
     
     /**
-     * 앱 시작 시 자동 연결
+     * 앱 시작 시 자동 연결 (빠른 연결)
      */
     private fun autoConnectOnStartup() {
         lifecycleScope.launch {
             // 잠시 대기 (UI 초기화 완료 후)
-            kotlinx.coroutines.delay(500)
+            kotlinx.coroutines.delay(300)
             
             connectionStatusTextView.text = "연결 상태: 자동 연결 중..."
             
             // 마지막 연결 주소가 있으면 먼저 시도
             val lastAddress = prefs.lastServerAddress
             if (lastAddress.isNotEmpty()) {
+                connectionStatusTextView.text = "연결 상태: $lastAddress 연결 중..."
                 dashboardController.connectToCarrotPilot(lastAddress)
                 
-                // 연결 성공 여부 확인 (3초 대기)
-                kotlinx.coroutines.delay(3000)
+                // 연결 성공 여부 확인 (1초만 대기 - 빠른 실패)
+                kotlinx.coroutines.delay(1000)
                 
                 val currentState = dashboardController.getConnectionState()
                 if (currentState is com.carrotpilot.carrotview.network.ConnectionState.Connected) {
                     // 연결 성공
                     return@launch
                 }
+                
+                // 연결 실패 시 즉시 자동 발견 시작
+                connectionStatusTextView.text = "연결 상태: 이전 주소 실패, 검색 중..."
             }
             
-            // 마지막 주소로 연결 실패 시 자동 발견 시도
+            // 자동 발견 시도
             connectionStatusTextView.text = "연결 상태: CarrotPilot 검색 중..."
             val success = dashboardController.discoverAndConnect()
             
@@ -106,11 +110,27 @@ class MainActivity : AppCompatActivity() {
             setPadding(40, 40, 40, 40)
         }
         
+        // 버전 정보 표시 (상단 중앙)
+        val buildTime = try {
+            val timestamp = com.carrotpilot.carrotview.BuildConfig.BUILD_TIME.toLong()
+            java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss", java.util.Locale.getDefault()).format(java.util.Date(timestamp))
+        } catch (e: Exception) {
+            "Unknown"
+        }
+        val versionTextView = TextView(this).apply {
+            text = "CarrotView v${com.carrotpilot.carrotview.BuildConfig.VERSION_NAME} (Build: $buildTime)"
+            textSize = 10f
+            gravity = android.view.Gravity.CENTER
+            setPadding(0, 0, 0, 10)
+            setTextColor(android.graphics.Color.GRAY)
+        }
+        layout.addView(versionTextView)
+        
         // 연결 상태 표시
         connectionStatusTextView = TextView(this).apply {
             text = "연결 상태: 연결 안 됨"
             textSize = 14f
-            setPadding(0, 0, 0, 20)
+            setPadding(0, 10, 0, 20)
         }
         layout.addView(connectionStatusTextView)
         

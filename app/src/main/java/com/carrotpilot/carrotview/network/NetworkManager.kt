@@ -63,8 +63,8 @@ class NetworkManager(private val context: Context) {
             authToken = prefs.authToken,
             autoReconnect = prefs.autoReconnect,
             reconnectInterval = prefs.reconnectInterval,
-            connectionTimeout = 3000,  // 3초로 단축
-            readTimeout = 10000  // 10초로 단축
+            connectionTimeout = 2000,  // 2초로 단축 (빠른 연결)
+            readTimeout = 8000  // 8초로 단축
         )
         
         // 연결 설정 저장
@@ -143,21 +143,20 @@ class NetworkManager(private val context: Context) {
     }
     
     /**
-     * 서브넷에서 CarrotPilot 찾기 - 모든 IP 대역 지원 (192.168.x.x, 10.x.x.x, 172.16-31.x.x)
+     * 서브넷에서 CarrotPilot 찾기 - 모든 IP 대역 지원 (빠른 검색)
      */
     private suspend fun findCarrotPilotInSubnet(subnet: String): String? = withContext(Dispatchers.IO) {
-        val jobs = mutableListOf<Deferred<String?>>()
-        
         // 우선순위 IP 목록 (일반적인 CarrotPilot IP)
         val priorityIps = listOf(
-            "$subnet.1",      // 게이트웨이/핫스팟
+            "$subnet.1",      // 게이트웨이/핫스팟 (가장 일반적)
             "$subnet.100",    // 일반적인 고정 IP
-            "$subnet.254"     // 마지막 주소
+            "$subnet.10",     // 일부 라우터
+            "$subnet.254",    // 마지막 주소
+            "$subnet.2"       // 두 번째 주소
         )
         
-        // 우선순위 IP 먼저 확인
+        // 우선순위 IP 먼저 순차 확인 (빠른 발견)
         for (ip in priorityIps) {
-            Log.d(TAG, "Checking priority IP: $ip")
             if (isCarrotPilotServer(ip)) {
                 Log.i(TAG, "✅ Found CarrotPilot at priority IP: $ip")
                 return@withContext ip
@@ -165,7 +164,9 @@ class NetworkManager(private val context: Context) {
         }
         
         // 병렬로 전체 서브넷 스캔 (x.x.x.1 ~ x.x.x.254)
-        Log.i(TAG, "Scanning full subnet: $subnet.0/24")
+        Log.i(TAG, "🔍 Scanning full subnet: $subnet.0/24")
+        val jobs = mutableListOf<Deferred<String?>>()
+        
         for (i in 1..254) {
             val ip = "$subnet.$i"
             if (priorityIps.contains(ip)) continue  // 이미 확인한 IP는 스킵
@@ -202,8 +203,8 @@ class NetworkManager(private val context: Context) {
             // 포트 체크 및 CarrotPilot 서버 확인
             val socket = Socket()
             try {
-                socket.soTimeout = 2000  // 2초 타임아웃
-                socket.connect(InetSocketAddress(ip, port), 2000)
+                socket.soTimeout = 800  // 0.8초 타임아웃 (빠른 검색)
+                socket.connect(InetSocketAddress(ip, port), 800)
                 
                 // 서버가 인증 요청을 보내는지 확인 (CarrotPilot 서버는 연결 시 즉시 auth_required 전송)
                 val input = socket.getInputStream()
@@ -221,12 +222,11 @@ class NetworkManager(private val context: Context) {
                 }
             } catch (e: Exception) {
                 try { socket.close() } catch (_: Exception) {}
-                android.util.Log.d(TAG, "❌ No service at $ip:$port - ${e.message}")
+                // 로그 레벨을 낮춤 (너무 많은 로그 방지)
                 return@withContext false
             }
             
         } catch (e: Exception) {
-            android.util.Log.e(TAG, "Error checking $ip: ${e.message}")
             return@withContext false
         }
     }
