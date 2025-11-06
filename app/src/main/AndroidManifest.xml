@@ -60,6 +60,12 @@
             android:theme="@style/Theme.CarrotView.NoActionBar">
         </activity>
         
+        <activity
+            android:name=".ui.LayoutManagerActivity"
+            android:exported="false"
+            android:label="레이아웃 관리">
+        </activity>
+        
     </application>
 
 </manifest>

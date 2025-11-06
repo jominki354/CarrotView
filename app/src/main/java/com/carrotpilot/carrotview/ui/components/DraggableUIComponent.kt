@@ -144,31 +144,42 @@ abstract class DraggableUIComponent @JvmOverloads constructor(
     }
     
     /**
-     * 현재 위치 저장
+     * 현재 위치와 크기 저장
      */
     fun savePosition(): ComponentPosition {
-        return ComponentPosition(x, y, width, height)
+        return ComponentPosition(x, y, width, height, 1.0f, visibility == View.VISIBLE)
     }
     
     /**
-     * 위치 복원
+     * 위치와 크기 복원
      */
     fun restorePosition(position: ComponentPosition) {
         x = position.x
         y = position.y
+        visibility = if (position.visible) View.VISIBLE else View.GONE
+        
         layoutParams = layoutParams.apply {
             width = position.width
             height = position.height
         }
     }
+    
+    /**
+     * 표시/숨김 토글
+     */
+    fun toggleVisibility() {
+        visibility = if (visibility == View.VISIBLE) View.GONE else View.VISIBLE
+    }
 }
 
 /**
- * 컴포넌트 위치 정보
+ * 컴포넌트 위치 및 상태 정보
  */
 data class ComponentPosition(
     val x: Float,
     val y: Float,
     val width: Int,
-    val height: Int
+    val height: Int,
+    val scale: Float = 1.0f,
+    val visible: Boolean = true
 )

@@ -144,4 +144,40 @@ class AppPreferences(context: Context) {
             null
         }
     }
+    
+    /**
+     * 컴포넌트 전체 상태 저장
+     */
+    fun saveComponentState(componentId: String, position: com.carrotpilot.carrotview.ui.components.ComponentPosition) {
+        prefs.edit().apply {
+            putFloat(KEY_COMPONENT_X + componentId, position.x)
+            putFloat(KEY_COMPONENT_Y + componentId, position.y)
+            putInt("component_width_$componentId", position.width)
+            putInt("component_height_$componentId", position.height)
+            putFloat("component_scale_$componentId", position.scale)
+            putBoolean("component_visible_$componentId", position.visible)
+            apply()
+        }
+    }
+    
+    /**
+     * 컴포넌트 전체 상태 복원
+     */
+    fun getComponentState(componentId: String): com.carrotpilot.carrotview.ui.components.ComponentPosition? {
+        val x = prefs.getFloat(KEY_COMPONENT_X + componentId, -1f)
+        val y = prefs.getFloat(KEY_COMPONENT_Y + componentId, -1f)
+        
+        if (x < 0 || y < 0) return null
+        
+        val width = prefs.getInt("component_width_$componentId", -1)
+        val height = prefs.getInt("component_height_$componentId", -1)
+        val scale = prefs.getFloat("component_scale_$componentId", 1.0f)
+        val visible = prefs.getBoolean("component_visible_$componentId", true)
+        
+        return if (width > 0 && height > 0) {
+            com.carrotpilot.carrotview.ui.components.ComponentPosition(x, y, width, height, scale, visible)
+        } else {
+            null
+        }
+    }
 }

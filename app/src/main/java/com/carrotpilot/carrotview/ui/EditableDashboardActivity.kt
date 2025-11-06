@@ -126,6 +126,25 @@ class EditableDashboardActivity : AppCompatActivity() {
         }
         rootLayout.addView(editModeButton)
         
+        // 레이아웃 관리 버튼 (상단 오른쪽)
+        val layoutManagerButton = Button(this).apply {
+            text = "🎨"
+            textSize = 12f
+            setBackgroundColor(0x88000000.toInt())
+            setTextColor(Color.WHITE)
+            layoutParams = FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.WRAP_CONTENT,
+                FrameLayout.LayoutParams.WRAP_CONTENT
+            ).apply {
+                gravity = Gravity.END or Gravity.TOP
+                setMargins(0, 16, 16, 0)
+            }
+            setOnClickListener {
+                openLayoutManager()
+            }
+        }
+        rootLayout.addView(layoutManagerButton)
+        
         setContentView(rootLayout)
     }
     
@@ -146,6 +165,11 @@ class EditableDashboardActivity : AppCompatActivity() {
             saveLayout()
             Toast.makeText(this, "레이아웃 저장됨", Toast.LENGTH_SHORT).show()
         }
+    }
+    
+    private fun openLayoutManager() {
+        val intent = android.content.Intent(this, LayoutManagerActivity::class.java)
+        startActivity(intent)
     }
     
     private fun saveLayout() {

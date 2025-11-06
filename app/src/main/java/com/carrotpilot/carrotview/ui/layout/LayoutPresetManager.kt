@@ -1,7 +1,6 @@
 package com.carrotpilot.carrotview.ui.layout
 
 import android.content.Context
-import com.carrotpilot.carrotview.data.models.LayoutConfig
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.decodeFromString
@@ -21,7 +20,7 @@ class LayoutPresetManager(private val context: Context) {
     /**
      * 레이아웃 저장
      */
-    fun saveLayout(name: String, layout: LayoutConfig): Boolean {
+    fun saveLayout(name: String, layout: PresetLayoutConfig): Boolean {
         return try {
             val jsonString = json.encodeToString(layout)
             prefs.edit().putString(name, jsonString).apply()
@@ -34,10 +33,10 @@ class LayoutPresetManager(private val context: Context) {
     /**
      * 레이아웃 로드
      */
-    fun loadLayout(name: String): LayoutConfig? {
+    fun loadLayout(name: String): PresetLayoutConfig? {
         return try {
             val jsonString = prefs.getString(name, null) ?: return null
-            json.decodeFromString<LayoutConfig>(jsonString)
+            json.decodeFromString<PresetLayoutConfig>(jsonString)
         } catch (e: Exception) {
             null
         }
