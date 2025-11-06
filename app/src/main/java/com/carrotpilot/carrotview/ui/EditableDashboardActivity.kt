@@ -151,7 +151,56 @@ class EditableDashboardActivity : AppCompatActivity() {
         }
         rootLayout.addView(layoutManagerButton)
         
+        // 표시/숨김 토글 버튼들 (편집 모드에서만 표시)
+        createVisibilityToggleButtons()
+        
         setContentView(rootLayout)
+    }
+    
+    private fun createVisibilityToggleButtons() {
+        // 속도계 표시/숨김 버튼
+        val speedToggleButton = Button(this).apply {
+            text = "👁️ 속도계"
+            textSize = 10f
+            setBackgroundColor(0x88000000.toInt())
+            setTextColor(Color.WHITE)
+            layoutParams = FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.WRAP_CONTENT,
+                FrameLayout.LayoutParams.WRAP_CONTENT
+            ).apply {
+                gravity = Gravity.START or Gravity.BOTTOM
+                setMargins(16, 0, 0, 16)
+            }
+            visibility = android.view.View.GONE
+            tag = "visibility_toggle"
+            setOnClickListener {
+                speedometer.toggleVisibility()
+                text = if (speedometer.visibility == android.view.View.VISIBLE) "👁️ 속도계" else "👁️‍🗨️ 속도계"
+            }
+        }
+        rootLayout.addView(speedToggleButton)
+        
+        // 오토파일럿 표시/숨김 버튼
+        val autopilotToggleButton = Button(this).apply {
+            text = "👁️ 오토파일럿"
+            textSize = 10f
+            setBackgroundColor(0x88000000.toInt())
+            setTextColor(Color.WHITE)
+            layoutParams = FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.WRAP_CONTENT,
+                FrameLayout.LayoutParams.WRAP_CONTENT
+            ).apply {
+                gravity = Gravity.END or Gravity.BOTTOM
+                setMargins(0, 0, 16, 16)
+            }
+            visibility = android.view.View.GONE
+            tag = "visibility_toggle"
+            setOnClickListener {
+                autopilotStatus.toggleVisibility()
+                text = if (autopilotStatus.visibility == android.view.View.VISIBLE) "👁️ 오토파일럿" else "👁️‍🗨️ 오토파일럿"
+            }
+        }
+        rootLayout.addView(autopilotToggleButton)
     }
     
     private fun toggleEditMode() {
@@ -161,11 +210,19 @@ class EditableDashboardActivity : AppCompatActivity() {
         speedometer.isEditMode = isEditMode
         autopilotStatus.isEditMode = isEditMode
         
+        // 표시/숨김 토글 버튼들 표시/숨김
+        for (i in 0 until rootLayout.childCount) {
+            val child = rootLayout.getChildAt(i)
+            if (child.tag == "visibility_toggle") {
+                child.visibility = if (isEditMode) android.view.View.VISIBLE else android.view.View.GONE
+            }
+        }
+        
         // 버튼 텍스트 변경
         editModeButton.text = if (isEditMode) "🔒 저장" else "🔓 편집"
         
         if (isEditMode) {
-            Toast.makeText(this, "편집 모드: 컴포넌트를 드래그하세요", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "편집 모드: 드래그/핀치/토글 가능", Toast.LENGTH_SHORT).show()
         } else {
             // 레이아웃 저장
             saveLayout()
